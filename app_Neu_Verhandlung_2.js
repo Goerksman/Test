@@ -274,6 +274,8 @@ function maybeAbort(userOffer) {
       accepted: false,
       finished: true,
       deal_price: "",
+      proband_exit: "",
+      algo_exit: "yes",
     });
 
     state.history.push({
@@ -321,6 +323,8 @@ function maybeAbort(userOffer) {
       accepted: false,
       finished: true,
       deal_price: "",
+      proband_exit: "",
+      algo_exit: "yes",
     });
 
     state.history.push({
@@ -393,7 +397,7 @@ function historyTable() {
    SCREENS
 ============================================================ */
 
-function viewVignette(){
+function viewVignette() {
   app.innerHTML = `
     <h1>Designer-Verkaufsmesse</h1>
     <p class="muted">Stelle dir folgende Situation vor:</p>
@@ -480,6 +484,49 @@ function viewAbort(chance) {
   }
 }
 
+function viewProbandAbort() {
+  app.innerHTML = `
+    <h1>Verhandlung abgebrochen</h1>
+    <p class="muted">Teilnehmer-ID: ${state.participant_id}</p>
+
+    <div class="card" style="padding:16px;border:1px dashed var(--accent);">
+      <strong>Du hast die Verhandlung beendet.</strong>
+      <p class="muted">Es wurde keine Einigung erzielt.</p>
+    </div>
+
+    <button id="restartBtn">Neue Verhandlung</button>
+    <button id="surveyBtn"
+      style="
+        margin-top:8px;
+        display:inline-block;
+        padding:8px 14px;
+        border-radius:9999px;
+        border:1px solid #d1d5db;
+        background:#e5e7eb;
+        color:#374151;
+        font-size:0.95rem;
+        cursor:pointer;
+      ">
+      Zur Umfrage
+    </button>
+
+    ${historyTable()}
+  `;
+
+  document.getElementById("restartBtn").onclick = () => {
+    state = newState();
+    viewVignette();
+  };
+
+  const surveyBtn = document.getElementById("surveyBtn");
+  if (surveyBtn) {
+    surveyBtn.onclick = () => {
+      window.location.href =
+        "https://docs.google.com/forms/d/e/1FAIpQLSddfk3DSXkwip_fTDijypc-QqpLYOfOlN45s4QouumBLyLLLA/viewform?usp=publish-editor";
+    };
+  }
+}
+
 function viewNegotiate(errorMsg) {
   const abortChance =
     typeof state.last_abort_chance === "number"
@@ -527,7 +574,17 @@ function viewNegotiate(errorMsg) {
         <button id="sendBtn">Gegenangebot senden</button>
       </div>
 
-      <button id="acceptBtn" class="ghost">Angebot annehmen</button>
+      <div class="row">
+        <button id="acceptBtn">Angebot annehmen</button>
+        <button id="abortBtn"
+          style="
+            background:#e5e7eb;
+            color:#374151;
+            border:1px solid #d1d5db;
+          ">
+          Verhandlung abbrechen
+        </button>
+      </div>
     </div>
 
     ${historyTable()}
@@ -556,6 +613,8 @@ function viewNegotiate(errorMsg) {
       accepted: true,
       finished: true,
       deal_price: state.current_offer,
+      proband_exit: "",
+      algo_exit: "",
     });
 
     state.accepted = true;
@@ -563,6 +622,33 @@ function viewNegotiate(errorMsg) {
     state.deal_price = state.current_offer;
 
     viewThink(() => viewFinish(true));
+  };
+
+  document.getElementById("abortBtn").onclick = () => {
+    // Proband beendet aktiv die Verhandlung
+    state.history.push({
+      runde: state.runde,
+      algo_offer: state.current_offer,
+      proband_counter: null,
+      accepted: false,
+    });
+
+    logRound({
+      runde: state.runde,
+      algo_offer: state.current_offer,
+      proband_counter: "",
+      accepted: false,
+      finished: true,
+      deal_price: "",
+      proband_exit: "yes",
+      algo_exit: "",
+    });
+
+    state.accepted = false;
+    state.finished = true;
+    state.deal_price = null;
+
+    viewThink(() => viewProbandAbort());
   };
 }
 
@@ -611,6 +697,8 @@ function handleSubmit(raw) {
       accepted: true,
       finished: true,
       deal_price: num,
+      proband_exit: "",
+      algo_exit: "",
     });
 
     state.accepted = true;
@@ -636,6 +724,8 @@ function handleSubmit(raw) {
     accepted: false,
     finished: false,
     deal_price: "",
+    proband_exit: "",
+    algo_exit: "",
   });
 
   state.history.push({
@@ -696,6 +786,8 @@ function finish(accepted, dealPrice) {
     accepted: state.accepted,
     finished: true,
     deal_price: dealPrice == null ? "" : state.deal_price,
+    proband_exit: "",
+    algo_exit: "",
   });
 
   viewThink(() => viewFinish(state.accepted));
@@ -757,6 +849,3 @@ function viewFinish(accepted) {
 ============================================================ */
 
 viewVignette();
-
-
-
